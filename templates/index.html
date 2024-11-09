@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Онлайн Чат</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;     
+            background-color: #121212;
+            margin: 0;
+            padding: 20px;
+        }
+        #header {
+            text-align: center;
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #header h1 {
+            font-variant: small-caps;
+            font-size: 2em;
+            margin: 0;
+        }
+        #chat {
+            border: 1px solid #ccc;
+            height: 400px;
+            overflow-y: scroll;
+            padding: 10px;
+            background-color: #212121;
+            margin-top: 20px;
+        }
+        #message-input {
+            background-color: #212121;
+            margin-top: 10px;
+            display: flex; /* Используем flexbox для выравнивания */
+            align-items: flex-start; /* Выравниваем элементы по верхнему краю */
+        }
+        .message {
+            margin: 5px 0;
+            color: white; /* Цвет текста белый */
+        }
+        .username {
+            font-weight: bold;
+        }
+        #login-form {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        #login-form input {
+            background-color: #212121;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            color: white; /* Цвет текста белый */
+        }
+        #login-form button {
+            background-color: #b88fff;
+            padding: 10px;
+            color: white; /* Цвет текста на кнопке белый */
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #login-form button:hover {
+            background-color: #212121;
+        }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+        #message {
+            background-color: #212121;
+            width: calc(100% - 22px); /* Учитываем отступы */
+            padding: 7px; /* Уменьшаем отступы на 8px */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px; /* Увеличиваем размер шрифта */
+            color: white; /* Устанавливаем цвет текста белым */
+        }
+        #message-input button {
+            background-color: #212121;
+            padding: 7px; /* Уменьшаем отступы на 8px */
+            margin-left: 10px; /* Отступ слева для кнопки */
+            font-size: 16px; /* Увеличиваем размер шрифта */
+            color: white; /* Цвет текста на кнопке белый */
+        }
+        h1 {
+            text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff;
+        }
+        .alpha-badge {
+            background-color: rgba(0, 0, 0, 0.2);
+            color: #b88fff;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid #007aff;
+            border-radius: 5px;
+            padding: 2px 5px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="header">
+    <h1>Онлайн чат</h1>
+    <span class="alpha-badge">BETA</span>
+</div>
+<div id="login-form">
+    <input type="text" id="username" placeholder="Введите ваш ник" />
+    <button onclick="setUsername()">Войти</button>
+    <div id="error-message"></div>
+</div>
+<div id="chat" style="display:none;"></div>
+<div id="message-input" style="display:none;">
+    <input type="text" id="message" placeholder="Введите ваше сообщение" />
+    <button onclick="sendMessage()">Отправить</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+<script>
+    let usernames = []; // Массив для хранения имен пользователей
+    let usernameColors = {}; // Объект для хранения цветов пользователей
+    let username = '';
+    const chat = document.getElementById('chat');
+    const socket = io();
+    const colors = ['#FF5733', '#3357FF', '#FF33A1', '#138808', '#581845', '#900C3F', '#000000'];
+
+    socket.on('message', function(msg) {
+        displayMessage(msg);
+    });
+
+    function displayMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        messageElement.innerHTML = message; // Прямо добавляем сообщение без анимации
+        chat.appendChild(messageElement);
+        chat.scrollTop = chat.scrollHeight; // Прокрутка вниз
+    }
+
+    function setUsername() {
+        const usernameInput = document.getElementById('username');
+        const errorMessage = document.getElementById('error-message');
+        username = usernameInput.value.trim();
+        if (username) {
+            if (usernames.includes(username)) {
+                errorMessage.textContent = 'Это имя пользователя уже занято. Пожалуйста, выберите другое.';
+            } else {
+                usernames.push(username);
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                usernameColors[username] = randomColor;
+                errorMessage.textContent = '';
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('chat').style.display = 'block';
+                document.getElementById('message-input').style.display = 'block';
+                usernameInput.value = '';
+            }
+        } else {
+            errorMessage.textContent = 'Пожалуйста, введите ник!';
+        }
+    }
+
+    function sendMessage() {
+        const messageInput = document.getElementById('message');
+        const message = messageInput.value.trim();
+        if (message) {
+            const usernameColor = usernameColors[username] || '#FFFFFF'; // Устанавливаем цвет текста пользователя белым
+            const formattedMessage = `<span class="username" style="color: ${usernameColor};">${username}:</span> <span style="color: white;">${message}</span>`;
+            socket.emit('send_message', formattedMessage); // Отправляем форматированное сообщение
+            messageInput.value = ''; // Очищаем поле ввода после отправки
+        }
+    }
+    // Обработчик события для получения сообщений с сервера
+    socket.on('receive_message', function(msg) {
+        displayMessage(msg); // Отображаем только полученные сообщения
+    });
+    document.getElementById('message').addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+            event.preventDefault();
+        }
+    });
+</script>
+</body>
+</html>
